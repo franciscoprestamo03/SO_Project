@@ -5,8 +5,8 @@
 #include <curses.h>
 #include <time.h>
 
-#define WIDTH 100
-#define HEIGHT 50
+#define WIDTH 75
+#define HEIGHT 20
 #define MAX_BULLETS 5
 #define MAX_ALIENS 10
 #define RESPAWN_TIME 30 // time units for an alien to respawn
@@ -42,9 +42,9 @@ void saveHighScore() {
 }
 
 void drawPlayer() {
-    mvprintw(playerY, playerX, " A ");
-    mvprintw(playerY + 1, playerX, "AAA");
-    mvprintw(playerY + 2, playerX, " A ");
+    mvprintw(playerY, playerX + 2, " ");
+    mvprintw(playerY + 1, playerX + 1, "   ");
+    mvprintw(playerY + 2, playerX, "     ");
 }
 
 void drawBullets() {
@@ -57,17 +57,17 @@ void drawAliens() {
     pthread_mutex_lock(&alienMutex);
     for (int i = 0; i < alienCount; i++) {
         if (aliens[i][3] == 1) { // Life 1
-            mvprintw(aliens[i][1], aliens[i][0], " M ");
-            mvprintw(aliens[i][1] + 1, aliens[i][0], "MMM");
-            mvprintw(aliens[i][1] + 2, aliens[i][0], " M ");
+            mvprintw(aliens[i][1], aliens[i][0], "   ");
+            mvprintw(aliens[i][1] + 1, aliens[i][0] + 1, " ");
+            mvprintw(aliens[i][1] + 2, aliens[i][0] + 1, " ");
         } else if (aliens[i][3] == 2) { // Life 2
-            mvprintw(aliens[i][1], aliens[i][0], "MMM");
-            mvprintw(aliens[i][1] + 1, aliens[i][0], " M ");
-            mvprintw(aliens[i][1] + 2, aliens[i][0], "MMM");
+            mvprintw(aliens[i][1], aliens[i][0], "   ");
+            mvprintw(aliens[i][1] + 1, aliens[i][0], "   ");
+            mvprintw(aliens[i][1] + 2, aliens[i][0] + 1, " ");
         } else if (aliens[i][3] == 3) { // Life 3
-            mvprintw(aliens[i][1], aliens[i][0], "MMM");
-            mvprintw(aliens[i][1] + 1, aliens[i][0], "MMM");
-            mvprintw(aliens[i][1] + 2, aliens[i][0], "MMM");
+            mvprintw(aliens[i][1], aliens[i][0], "   ");
+            mvprintw(aliens[i][1] + 1, aliens[i][0], "   ");
+            mvprintw(aliens[i][1] + 2, aliens[i][0], "   ");
         }
     }
     pthread_mutex_unlock(&alienMutex);
@@ -121,7 +121,7 @@ void moveAliens() {
         }
 
         // If the alien reaches the bottom, set game over
-        if (aliens[i][1] >= HEIGHT - 2) {
+        if (aliens[i][1] >= HEIGHT - 3) {
             gameOver = 1;
         }
     }
@@ -132,8 +132,8 @@ void checkCollisions() {
     pthread_mutex_lock(&alienMutex);
     for (int i = 0; i < bulletCount; i++) {
         for (int j = 0; j < alienCount; j++) {
-            if (bullets[i][0] >= aliens[j][0] && bullets[i][0] < aliens[j][0] + 2 &&
-                bullets[i][1] >= aliens[j][1] && bullets[i][1] < aliens[j][1] + 2) {
+            if (bullets[i][0] >= aliens[j][0] && bullets[i][0] <= aliens[j][0] + 2 &&
+                bullets[i][1] >= aliens[j][1] && bullets[i][1] <= aliens[j][1] + 2) {
                 // Remove the bullet
                 for (int k = i; k < bulletCount - 1; k++) {
                     bullets[k][0] = bullets[k + 1][0];
@@ -143,6 +143,13 @@ void checkCollisions() {
 
                 // Reduce alien life
                 aliens[j][3]--;
+ 
+                // Update the score (hitting an alien gives 10 points, killing it gives 20)
+                score += 10;
+                if (score > highScore) {
+                    highScore = score;
+                }
+
                 if (aliens[j][3] <= 0) {
                     // Remove the alien if life is 0
                     for (int k = j; k < alienCount - 1; k++) {
@@ -181,7 +188,7 @@ void* alienRespawn(void* arg) {
                     // Respawn the alien
                     int posX;
                     do {
-                        posX = rand() % (WIDTH / 3) * 3; // Ensure posX is a multiple of 3
+                        posX = (rand() % (WIDTH / 3)) * 3; // Ensure posX is a multiple of 3
                     } while (posX >= WIDTH - 2); // Ensure posX is within bounds
                     aliens[alienCount][0] = posX;
                     aliens[alienCount][1] = rand() % (HEIGHT / 2);
@@ -226,6 +233,17 @@ void* getInput(void* arg) {
 int main() {
     srand(time(NULL)); // Seed the random number generator
     initscr();
+    
+    if (has_colors() == FALSE)
+    {
+        printf("NO COLORS");
+        exit(1);
+    }
+
+    start_color();
+    init_pair(1, COLOR_GREEN, COLOR_GREEN);
+    attron(COLOR_PAIR(1));
+
     noecho();
     curs_set(FALSE);
     keypad(stdscr, TRUE);

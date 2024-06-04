@@ -7,3 +7,4 @@
 - [] store users and top 10 user high scores
 - [] implement save/load game
 - [] add a memory vector to store data
+- [] make projectiles move 2x as fast as enemies (collisions might pose an issue)
