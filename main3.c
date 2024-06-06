@@ -16,8 +16,8 @@
 #define MEMORY_LENGTH 1000000
 
 int *_MEMORY[MEMORY_LENGTH + BLOCK_MEMORY_LENGTH];
-char *PROGRAM_MEMORY = (char *)_MEMORY;
-int *MEMORY_BLOCKS = (int *)(((char *)_MEMORY) + MEMORY_LENGTH);
+__int8_t *PROGRAM_MEMORY = (__int8_t *)_MEMORY;
+int *MEMORY_BLOCKS = (int *)(((__int8_t *)_MEMORY) + MEMORY_LENGTH);
 // stores the amount of blocks
 #define blockCounter MEMORY_BLOCKS[0]
 // stores a pointer to the current block for the nextFit algorithm
@@ -40,7 +40,7 @@ int _getBlockSize(int blockPtr);
 void _setBlockSize(int blockPtr, int newLength);
 
 int _getBlockFree(int blockPtr);
-void _setBlockFree(int blockPtr, char newFree);
+void _setBlockFree(int blockPtr, __int8_t newFree);
 
 int _getBlockNext(int blockPtr);
 void _setBlockNext(int blockPtr, int newNext);
@@ -216,7 +216,7 @@ void _setBlockSize(int blockPtr, int newLength){
 int _getBlockFree(int blockPtr){
     return MEMORY_BLOCKS[blockPtr + BLOCK_FREE];
 }
-void _setBlockFree(int blockPtr, char newFree){
+void _setBlockFree(int blockPtr, __int8_t newFree){
     MEMORY_BLOCKS[blockPtr + BLOCK_FREE] = newFree;
 }
 
@@ -276,6 +276,7 @@ void printBlockMemory(int length)
 
     #define int_t_size sizeof(int)
     #define char_t_size sizeof(char)
+    #define byte_size sizeof(__int8_t)
 
     #pragma region Simple Types
 
@@ -309,12 +310,12 @@ void printBlockMemory(int length)
         int getBullet_y(int blockPtr);
 
         // returns blockPointer to new alien
-        int createAlien(int pos_x, int pos_y, char direction, int life);
+        int createAlien(int pos_x, int pos_y, __int8_t direction, int life);
         void writeAlien(int blockPtr, int pos_x, int pos_y, int direction, int life);
 
         int getAlien_x(int blockPtr);
         int getAlien_y(int blockPtr);
-        char getAlien_dir(int blockPtr);
+        __int8_t getAlien_dir(int blockPtr);
         int getAlien_life(int blockPtr);
 
         // returns blockPointer to new score track
@@ -429,32 +430,59 @@ void printBlockMemory(int length)
     }
 
 
-    int createAlien(int pos_x, int pos_y, char direction, int life)
+    int createAlien(int pos_x, int pos_y, __int8_t direction, int life)
     {
         lockMemory;
-        int blockPtr = _allocateMemory(int_t_size*3 + char_t_size); 
+        int blockPtr = _allocateMemory(int_t_size*3 + byte_size); 
         _writeIntegerInArray(blockPtr, 0, pos_x);
         _writeIntegerInArray(blockPtr, 1, pos_y);
         _writeIntegerInArray(blockPtr, 2, life);
-        char *dirPtr = (PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
-        dirPtr = (char *)((int *)(dirPtr) + 3);
+        __int8_t *dirPtr = (PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
+        dirPtr = (__int8_t *)((int *)(dirPtr) + 3);
         *dirPtr = direction;
         unlockMemory;
+
+        return blockPtr;
     }
-    int getAlien_x
+    int getAlien_x(int blockPtr)
+    {
+        return getIntegerInArray(blockPtr, 0);
+    }
+    int getAlien_y(int blockPtr)
+    {
+        return getIntegerInArray(blockPtr, 1);
+    }
+    int getAlien_life(int blockPtr)
+    {
+        return getIntegerInArray(blockPtr, 2);
+    }
+    __int8_t getAlien_dir(int blockPtr)
+    {
+        __int8_t *dirPtr = (PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
+        dirPtr = (__int8_t *)((int *)(dirPtr) + 3);
+        return *dirPtr;
+    }
 
 #pragma endregion
 
 int main() {
     
     initMemory();
-    int number = allocateMemory(int_t_size);
-    writeInteger(number, 10);
-    int number2 = allocateMemory(int_t_size);
-    writeInteger(number2, 20);
+    int alien = createAlien(1, 2, 1, 10);
 
-    printf("%d\n", getInteger(number));
-    printf("%d\n", getInteger(number2));
+    printf("x : %d\ny : %d\nHP: %d\nd : %d",
+        getAlien_x(alien),
+        getAlien_y(alien),
+        getAlien_life(alien),
+        getAlien_dir(alien)
+    );
+
+    freeMemory(alien);
+
+    // int arr = allocateMemory(int_t_size*10);
+    // writeIntegerInArray(arr, 0, 20);
+    // writeIntegerInArray(arr, 1, 30);
+    // printf("%d\n", getIntegerInArray(arr, 1));
 
     
     return 0;
