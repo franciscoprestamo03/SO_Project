@@ -11,21 +11,17 @@
 
 #pragma region Memory Allocation Declarations
 
-#define sizeofBlock 4
-#define BLOCK_MEMORY_LENGTH (10000*sizeofBlock + 3)
+#define sizeofBlockData (3*sizeof(int))
 #define MEMORY_LENGTH 1000000
 
-int *_MEMORY[MEMORY_LENGTH + BLOCK_MEMORY_LENGTH];
+int _MEMORY[MEMORY_LENGTH];
 __int8_t *PROGRAM_MEMORY = (__int8_t *)_MEMORY;
-int *MEMORY_BLOCKS = (int *)(((__int8_t *)_MEMORY) + MEMORY_LENGTH);
 // stores the amount of blocks
-#define blockCounter MEMORY_BLOCKS[0]
+#define blockCounter _MEMORY[0]
 // stores a pointer to the current block for the nextFit algorithm
-#define curBlockPtr MEMORY_BLOCKS[1]
-// stores a pinter to the last free space 
-#define lastBlockPtr MEMORY_BLOCKS[2]
-
-#define FIRST_BLOCK_PTR 3
+#define curBlockPtr _MEMORY[1]
+#define GLOBAL_DATA_SIZE (sizeof(int)*2)
+#define FIRST_BLOCK_PTR GLOBAL_DATA_SIZE
 
 pthread_mutex_t memoryMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -40,17 +36,15 @@ int _getBlockSize(int blockPtr);
 void _setBlockSize(int blockPtr, int newLength);
 
 int _getBlockFree(int blockPtr);
-void _setBlockFree(int blockPtr, __int8_t newFree);
+void _setBlockFree(int blockPtr, int newFree);
 
 int _getBlockNext(int blockPtr);
 void _setBlockNext(int blockPtr, int newNext);
 
 int getBlockMemoryPtr(int blockPtr);
 int _getBlockMemoryPtr(int blockPtr);
-void _setBlockMemoryPtr(int blockPtr, int newMemoryPtr);
 
 void printBlocks();
-void printBlockMemory(int length);
 
 
 #pragma endregion
@@ -60,65 +54,10 @@ void printBlockMemory(int length);
 void initMemory()
 {
     blockCounter = 1;
-    lastBlockPtr = FIRST_BLOCK_PTR + sizeofBlock;
     curBlockPtr = FIRST_BLOCK_PTR;
-    _setBlockSize(curBlockPtr, MEMORY_LENGTH);
+    _setBlockSize(curBlockPtr, MEMORY_LENGTH - GLOBAL_DATA_SIZE - sizeofBlockData);
     _setBlockFree(curBlockPtr, 1);
     _setBlockNext(curBlockPtr, -1);
-    _setBlockMemoryPtr(curBlockPtr, 0);
-}
-
-int allocateMemory(int size)
-{
-    pthread_mutex_lock(&memoryMutex);
-    
-    int firstBlock = curBlockPtr;
-    int answ = -1;
-    do
-    {
-        if (_getBlockFree(curBlockPtr) && _getBlockSize(curBlockPtr) >= size)
-        {
-            if (_getBlockSize(curBlockPtr) > size)
-            {            
-                blockCounter += 1;
-                if (lastBlockPtr >= BLOCK_MEMORY_LENGTH - sizeofBlock)
-                {
-                    printf("BLOCK MEMORY OVERFLOW");
-                    exit(1);
-                }
-                _setBlockFree(lastBlockPtr, 1);
-                _setBlockSize(lastBlockPtr, _getBlockSize(curBlockPtr) - size);
-                _setBlockNext(lastBlockPtr, -1);
-                _setBlockMemoryPtr(lastBlockPtr, _getBlockMemoryPtr(curBlockPtr) + size);
-
-                _setBlockNext(curBlockPtr, lastBlockPtr);
-                lastBlockPtr += sizeofBlock;
-
-                _setBlockSize(curBlockPtr, size);                
-            }
-
-            _setBlockFree(curBlockPtr, 0);
-            answ = curBlockPtr;
-            break;
-        }
-        else
-        {
-            if (_getBlockNext(curBlockPtr) == -1)
-                curBlockPtr = FIRST_BLOCK_PTR;
-            else
-                curBlockPtr = _getBlockNext(curBlockPtr);
-        }
-    } while (curBlockPtr != firstBlock);
-    
-    if (answ == -1)
-    {
-        printf("NOT ENOUGH MEMORY");
-        exit(1);
-    } 
-
-    pthread_mutex_unlock(&memoryMutex);
-
-    return answ;
 }
 
 
@@ -132,20 +71,13 @@ int _allocateMemory(int size)
         {
             if (_getBlockSize(curBlockPtr) > size)
             {            
+                int newBlockPtr = curBlockPtr + sizeofBlockData + size;
                 blockCounter += 1;
-                if (lastBlockPtr >= BLOCK_MEMORY_LENGTH - sizeofBlock)
-                {
-                    printf("BLOCK MEMORY OVERFLOW");
-                    exit(1);
-                }
-                _setBlockFree(lastBlockPtr, 1);
-                _setBlockSize(lastBlockPtr, _getBlockSize(curBlockPtr) - size);
-                _setBlockNext(lastBlockPtr, -1);
-                _setBlockMemoryPtr(lastBlockPtr, _getBlockMemoryPtr(curBlockPtr) + size);
+                _setBlockFree(newBlockPtr, 1);
+                _setBlockSize(newBlockPtr, _getBlockSize(curBlockPtr) - size - sizeofBlockData);
+                _setBlockNext(newBlockPtr, _getBlockNext(curBlockPtr));
 
-                _setBlockNext(curBlockPtr, lastBlockPtr);
-                lastBlockPtr += sizeofBlock;
-
+                _setBlockNext(curBlockPtr, newBlockPtr);
                 _setBlockSize(curBlockPtr, size);                
             }
 
@@ -164,15 +96,25 @@ int _allocateMemory(int size)
     
     if (answ == -1)
     {
-        printf("NOT ENOUGH MEMORY");
+        printf("NOT ENOUGH MEMORY\n");
         exit(1);
     } 
     return answ;
 }
 
+
+int allocateMemory(int size)
+{
+    lockMemory;
+    int answ = _allocateMemory(size);
+    unlockMemory;
+
+    return answ;
+}
+
 void freeMemory(int blockPtr)
 {
-    pthread_mutex_lock(&memoryMutex);
+    lockMemory;
 
     if (_getBlockFree(blockPtr))
     {
@@ -185,46 +127,57 @@ void freeMemory(int blockPtr)
 
     do
     {
-
         if (_getBlockFree(blockPtr) &&
          _getBlockNext(blockPtr) != -1 &&
          _getBlockFree(_getBlockNext(blockPtr)))
         {
             int nextBlock = _getBlockNext(blockPtr);
-            _setBlockSize(blockPtr, _getBlockSize(blockPtr) + _getBlockSize(nextBlock));
+            _setBlockSize(blockPtr, _getBlockSize(blockPtr) + _getBlockSize(nextBlock) + sizeofBlockData);
             _setBlockNext(blockPtr, _getBlockNext(nextBlock));
         }
         else blockPtr = _getBlockNext(blockPtr);
     }while(blockPtr != -1);
 
 
-    pthread_mutex_unlock(&memoryMutex);
+    unlockMemory;
 }
 
 #define BLOCK_SIZE 0
 #define BLOCK_FREE 1
 #define BLOCK_NEXT 2
-#define BLOCK_MEMORY_PTR 3
+
+int _getBlock(int blockPtr, int offset){
+    __int8_t *loc = PROGRAM_MEMORY + blockPtr;
+    int *infoPtr = (int *)loc;
+    
+    return infoPtr[blockPtr + offset];
+}
+int _setBlock(int blockPtr, int offset, int new){
+    __int8_t *loc = PROGRAM_MEMORY + blockPtr;
+    int *infoPtr = (int *)loc;
+    
+    infoPtr[blockPtr + offset] = new;
+}
 
 int _getBlockSize(int blockPtr){
-    return MEMORY_BLOCKS[blockPtr + BLOCK_SIZE];
+    return _getBlock(blockPtr, BLOCK_SIZE);
 }
 void _setBlockSize(int blockPtr, int newLength){
-    MEMORY_BLOCKS[blockPtr + BLOCK_SIZE] = newLength;
+    _setBlock(blockPtr, BLOCK_SIZE, newLength);
 }
 
 int _getBlockFree(int blockPtr){
-    return MEMORY_BLOCKS[blockPtr + BLOCK_FREE];
+    return _getBlock(blockPtr, BLOCK_FREE);
 }
-void _setBlockFree(int blockPtr, __int8_t newFree){
-    MEMORY_BLOCKS[blockPtr + BLOCK_FREE] = newFree;
+void _setBlockFree(int blockPtr, int newFree){
+    _setBlock(blockPtr, BLOCK_FREE, newFree);
 }
 
 int _getBlockNext(int blockPtr){
-    return MEMORY_BLOCKS[blockPtr + BLOCK_NEXT];
+    return _getBlock(blockPtr, BLOCK_NEXT);
 }
 void _setBlockNext(int blockPtr, int newNext){
-    MEMORY_BLOCKS[blockPtr + BLOCK_NEXT] = newNext;
+    _setBlock(blockPtr, BLOCK_NEXT, newNext);
 }
 
 int getBlockMemoryPtr(int blockPtr){
@@ -234,11 +187,9 @@ int getBlockMemoryPtr(int blockPtr){
     return answ;
 }
 int _getBlockMemoryPtr(int blockPtr){
-    return MEMORY_BLOCKS[blockPtr + BLOCK_MEMORY_PTR];
+    return blockPtr + sizeofBlockData;
 }
-void _setBlockMemoryPtr(int blockPtr, int newMemoryPtr){
-    MEMORY_BLOCKS[blockPtr + BLOCK_MEMORY_PTR] = newMemoryPtr;
-}
+
 
 
 void printBlocks()
@@ -248,7 +199,8 @@ void printBlocks()
     do
     {
         printf(
-            "Block Ptr: %d\nBlock Size: %d\nBlock Free: %d\nBlock Next: %d\n\n",
+            "BlockPtr: %d\nBlock MemoryPtr: %d\nBlock Size: %d\nBlock Free: %d\nBlock Next: %d\n\n",
+            curBlock,
             _getBlockMemoryPtr(curBlock),
             _getBlockSize(curBlock),
             _getBlockFree(curBlock),
@@ -260,13 +212,6 @@ void printBlocks()
     pthread_mutex_unlock(&memoryMutex);
 
 }
-
-void printBlockMemory(int length)
-{
-    for (int i = 0; i < length; i++)
-        printf("%d, ", MEMORY_BLOCKS[i]);
-}
-
 
 
 #pragma endregion
@@ -291,11 +236,9 @@ void printBlockMemory(int length)
     #pragma region Arrays
 
         void writeIntegerInArray(int blockPtr, int index, int value);
-        void _writeIntegerInArray(int blockPtr, int index, int value);
         int getIntegerInArray(int blockPtr, int index);
 
         void writeCharInArray(int blockPtr, int index, char value);
-        void _writeCharInArray(int blockPtr, int index, char value);
         char getCharInArray(int blockPtr, int index);
 
     #pragma endregion
@@ -311,7 +254,7 @@ void printBlockMemory(int length)
 
         // returns blockPointer to new alien
         int createAlien(int pos_x, int pos_y, __int8_t direction, int life);
-        void writeAlien(int blockPtr, int pos_x, int pos_y, int direction, int life);
+        void writeAlien(int blockPtr, int pos_x, int pos_y, __int8_t direction, int life);
 
         int getAlien_x(int blockPtr);
         int getAlien_y(int blockPtr);
@@ -359,21 +302,18 @@ void printBlockMemory(int length)
     }
 
 
-    void writeIntegerInArray(int blockPtr, int index, int value)
-    {
-        lockMemory;
-        int *loc = (int *)(PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
-        loc += index;
-        *loc = value;
-        unlockMemory;
-    }
     void _writeIntegerInArray(int blockPtr, int index, int value)
     {
         int *loc = (int *)(PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
         loc += index;
         *loc = value;
     }
-
+    void writeIntegerInArray(int blockPtr, int index, int value)
+    {
+        lockMemory;
+        _writeIntegerInArray(blockPtr, index, value);
+        unlockMemory;
+    }  
     int getIntegerInArray(int blockPtr, int index)
     {
         int *loc = (int *)(PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
@@ -381,20 +321,19 @@ void printBlockMemory(int length)
         return *loc;
     }
 
-    void writeCharInArray(int blockPtr, int index, char value)
-    {
-        lockMemory;
-        char *loc = (PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
-        loc += index;
-        *loc = value;
-        unlockMemory;
-    }
     void _writeCharInArray(int blockPtr, int index, char value)
     {
         char *loc = (PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
         loc += index;
         *loc = value;
     }
+    void writeCharInArray(int blockPtr, int index, char value)
+    {
+        lockMemory;
+        _writeCharInArray(blockPtr, index, value);
+        unlockMemory;
+    }
+    
 
     char getCharInArray(int blockPtr, int index)
     {
@@ -404,20 +343,23 @@ void printBlockMemory(int length)
     }
 
 
+    void _writeBullet(int blockPtr, int pos_x, int pos_y)
+    {
+        _writeIntegerInArray(blockPtr, 0, pos_x);
+        _writeIntegerInArray(blockPtr, 1, pos_y);
+    }
     int createBullet(int pos_x, int pos_y)
     {
         lockMemory;
         int blockPtr = _allocateMemory(2*int_t_size);
-        _writeIntegerInArray(blockPtr, 0, pos_x);
-        _writeIntegerInArray(blockPtr, 1, pos_y);
+        _writeBullet(blockPtr, pos_x, pos_y);
         unlockMemory;
         return blockPtr;
     }
     void writeBullet(int blockPtr, int pos_x, int pos_y)
     {
         lockMemory;
-        _writeIntegerInArray(blockPtr, 0, pos_x);
-        _writeIntegerInArray(blockPtr, 1, pos_y);
+        _writeBullet(blockPtr, pos_x, pos_y);
         unlockMemory;
     }
     int getBullet_x(int blockPtr)
@@ -430,19 +372,29 @@ void printBlockMemory(int length)
     }
 
 
-    int createAlien(int pos_x, int pos_y, __int8_t direction, int life)
+    void _writeAlien(int blockPtr, int pos_x, int pos_y, __int8_t direction, int life)
     {
-        lockMemory;
-        int blockPtr = _allocateMemory(int_t_size*3 + byte_size); 
         _writeIntegerInArray(blockPtr, 0, pos_x);
         _writeIntegerInArray(blockPtr, 1, pos_y);
         _writeIntegerInArray(blockPtr, 2, life);
         __int8_t *dirPtr = (PROGRAM_MEMORY + _getBlockMemoryPtr(blockPtr));
         dirPtr = (__int8_t *)((int *)(dirPtr) + 3);
         *dirPtr = direction;
+    }
+    int createAlien(int pos_x, int pos_y, __int8_t direction, int life)
+    {
+        lockMemory;
+        int blockPtr = _allocateMemory(int_t_size*3 + byte_size); 
+        _writeAlien(blockPtr, pos_x, pos_y, direction, life);
         unlockMemory;
 
         return blockPtr;
+    }
+    void writeAlien(int blockPtr, int pos_x, int pos_y, __int8_t direction, int life)
+    {
+        lockMemory;
+        _writeAlien(blockPtr, pos_x, pos_y, direction, life);
+        unlockMemory;
     }
     int getAlien_x(int blockPtr)
     {
@@ -468,22 +420,8 @@ void printBlockMemory(int length)
 int main() {
     
     initMemory();
-    int alien = createAlien(1, 2, 1, 10);
-
-    printf("x : %d\ny : %d\nHP: %d\nd : %d",
-        getAlien_x(alien),
-        getAlien_y(alien),
-        getAlien_life(alien),
-        getAlien_dir(alien)
-    );
-
-    freeMemory(alien);
-
-    // int arr = allocateMemory(int_t_size*10);
-    // writeIntegerInArray(arr, 0, 20);
-    // writeIntegerInArray(arr, 1, 30);
-    // printf("%d\n", getIntegerInArray(arr, 1));
 
     
+
     return 0;
 }
