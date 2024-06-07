@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "unistd.h": "c",
+        "memory_handling.h": "c",
+        "curses.h": "c",
+        "pthread.h": "c",
+        "memory_allocation.h": "c"
+    }
+}
