@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define SCREEN_WIDTH 75
-#define SCREEN_HEIGHT 20
+#define SCREEN_HEIGHT 40
 #define SCREEN_DANGER_LOWER_BAR_HEIGHT 3  
 #define infoPosition_x (SCREEN_WIDTH + 2)
 #define LEFT_DIR 1
@@ -531,7 +531,7 @@ void deleteFromPtrArray(int ptr_arr, int index, int size)
     }   
 }
 
-int random(int start, int endNonInclusive)
+int randint(int start, int endNonInclusive)
 {
     if (endNonInclusive == 0)
         exit(1);
@@ -917,7 +917,7 @@ bool _popRespawnTimer()
         int currCtr = getIntegerInArray(alienRespawnTimes_arr, i);
         if (currCtr == 0)
         {
-            currCtr = random(1, respawnTimerMax + 1);
+            currCtr = randint(1, respawnTimerMax + 1);
             writeIntegerInArray(alienRespawnTimes_arr, i, currCtr);
             return true;
         }
@@ -929,7 +929,7 @@ void _addAlienToNewAlienObject()
 {
     int x = 0;
     int y = 0;
-    int life = random(1, 4);
+    int life = randint(1, 4);
     int dir = RIGHT_DIR;
 
     int alien = createAlien(x, y, dir, life);
@@ -1048,7 +1048,7 @@ void initializeGame(
     for (int i = 0; i < getInteger(maxAliens_int)/2; i++)
         writeIntegerInArray(alienRespawnTimes_arr, i, 0);
     for (int i = (getInteger(maxAliens_int) + 1)/2; i < getInteger(maxAliens_int); i++)
-        writeIntegerInArray(alienRespawnTimes_arr, i, random(1, 11));
+        writeIntegerInArray(alienRespawnTimes_arr, i, randint(1, 11));
 
     bulletCounter_int = createIntegerInit(0);
     bulletPtrs_bullet_arr = createIntegerArray(getInteger(maxBullets_int));
@@ -1568,7 +1568,7 @@ void memHandlingTest_9()
 
     for (int i = 0; i < ARRSIZ; i++)
     {
-        int ptr = createAlien(random(1, 10), random(1, 10), random(0, 2), random(1, 5));
+        int ptr = createAlien(randint(1, 10), randint(1, 10), randint(0, 2), randint(1, 5));
         writeIntegerInArray(ptrs, i, ptr);
     }
     for (int i = 0; i < ARRSIZ; i++)
@@ -1630,7 +1630,7 @@ void memHandlingTest_10()
     for (int i = 0; i < getInteger(maxAliens_int)/2; i++)
         writeIntegerInArray(alienRespawnTimes_arr, i, 0);
     for (int i = (getInteger(maxAliens_int) + 1)/2; i < getInteger(maxAliens_int); i++)
-        writeIntegerInArray(alienRespawnTimes_arr, i, random(1, 11));
+        writeIntegerInArray(alienRespawnTimes_arr, i, randint(1, 11));
 
     bulletCounter_int = createIntegerInit(0);
     bulletPtrs_bullet_arr = createIntegerArray(getInteger(maxBullets_int));
@@ -1703,10 +1703,10 @@ void storeNoise(int objectAmount)
 {
     for (int i = 0; i < objectAmount; i++)
     {
-        int r = random(0, 10);
+        int r = randint(0, 10);
         if (r == 0)
         {
-            createIntegerArray(random(1, 101));
+            createIntegerArray(randint(1, 101));
         }
         else
         {
@@ -1722,14 +1722,14 @@ void storeAndDeleteNoise()
     for (int i = 0; i < ARRSIZ; i++)
     {
 
-        int r = random(0, 2);
+        int r = randint(0, 2);
         if (r == 0)
         {
-            ptrs[i] = createIntegerArray(random(1, 101));
+            ptrs[i] = createIntegerArray(randint(1, 101));
         }
         else
         {            
-            ptrs[i] = createIntegerInit(random(1, 10000));
+            ptrs[i] = createIntegerInit(randint(1, 10000));
         }
     }  
 
