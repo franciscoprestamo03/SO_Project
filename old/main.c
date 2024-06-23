@@ -93,6 +93,7 @@ void moveBullets() {
                 bullets[j][1] = bullets[j + 1][1];
             }
             bulletCount--;
+            i--;
         }
     }
 }
