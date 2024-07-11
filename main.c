@@ -938,6 +938,35 @@ void _addAlienToNewAlienObject()
 
     #pragma endregion
 
+void saveGameState() {
+    FILE *file = fopen("game_state.dat", "wb");
+    if (file == NULL) {
+        perror("No se pudo abrir el archivo para guardar el estado del juego");
+        return;
+    }
+    _lockMemory;
+    fwrite(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
+    _unlockMemory;
+    fclose(file);
+    printf("Estado del juego guardado con éxito\n");
+}
+
+void loadGameState() {
+
+
+
+    FILE *file = fopen("game_state.dat", "rb");
+    if (file == NULL) {
+        perror("No se pudo abrir el archivo para cargar el estado del juego");
+        return;
+    }
+    _lockMemory;
+    fread(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
+    _unlockMemory;
+    fclose(file);
+    printf("Estado del juego cargado con éxito\n");
+
+}
 
 void _shootBulletIfPossible();
 void* getGameInput(void* arg)
@@ -968,7 +997,12 @@ void* getGameInput(void* arg)
         case 'q':
             gameOver = true;
             break;
+        case 'g':
+            saveGameState();
+            break;
         }
+
+
     }
     return NULL;
 }
@@ -1064,6 +1098,29 @@ void initializeGame(
     respawnTimerMax_int = createIntegerInit(respawnTimerMax);
 
     gameOver = false;
+}
+
+void initializeGame2(
+    int maxAliens, int maxBullets, int bulletSpeed,
+    int alienXSize, int alienYSize,
+    int laneSize,
+    char fullLifeAlienBmp[],
+    char mediumLifeAlienBmp[],
+    char lowLifeAlienBmp[],
+    int alienSpeed,
+    int scoreOnHit,
+    int scoreOnKill,
+    int respawnTimerMax,
+    int playerSpeed)
+{
+    if (laneSize < alienYSize){
+        printf("LANE SIZE MUST BE GREATER OR EQUAL TO ALIEN SIZE");
+        exit(1);
+    }
+    gameOver = false;
+    loadGameState();
+
+
 }
 
 void freeGameMemory()
@@ -1188,8 +1245,63 @@ void newGame(){
 
     scanf("hello");
 
+
+
     freeGameMemory();
+
 }
+
+void loadGame() {
+    char fullLifeBitMap[] = "     \n     \n     \n     \n     ";
+    char mediumLifeBitMap[] = "     \n     \n     \n     \n__ __";
+    char lowLifeBitMap[] = "     \n     \n__ __\n__ __\n__ __";
+    initializeGame2(
+        20, 10, 1, 5, 5, 5,
+        fullLifeBitMap,
+        mediumLifeBitMap,
+        lowLifeBitMap,
+        1, 10, 10, 10, 1
+    );
+
+
+
+    pthread_t inputThread, alienGenThread;
+    pthread_create(&inputThread, NULL, getGameInput, NULL);
+    pthread_create(&alienGenThread, NULL, generateAliens, NULL);
+
+
+    loadGameState();
+
+    while(!gameOver) {
+        clear();
+        drawPlayer();
+        if (newAlienFull() && getInteger(alienCounter_int) < getInteger(maxAliens_int) && noAlienInTopLeftCorner()) {
+            newAlien();
+        }
+        _moveObjects();
+        killAliensAndIncreaseScore();
+        _drawObjects();
+        refresh();
+        usleep(100000);
+    }
+
+    clear();
+    attron(A_BOLD);
+    attron(COLOR_PAIR(RED_COLOR_PAIR));
+    mvprintw(SCREEN_HEIGHT / 2 - 1, (SCREEN_WIDTH - 10) / 2, "GAME OVER");
+    mvprintw(SCREEN_HEIGHT / 2 + 1, (SCREEN_WIDTH - 10) / 2, "Score: %d", getInteger(currentScore_int));
+    mvprintw(SCREEN_HEIGHT / 2 + 3, (SCREEN_WIDTH - 10) / 2, "PRESS ANY KEY TO GO BACK");
+    attroff(A_BOLD);
+    attroff(COLOR_PAIR(RED_COLOR_PAIR));
+    refresh();
+
+    getchar();
+
+    freeGameMemory();
+
+
+}
+
 void _drawObjects()
 {
     pthread_t alienDrawer, bulletDrawer, infoDrawer;
@@ -1233,7 +1345,7 @@ void mainMenu()
         if (cursor == 0)
             mvprintw(SCREEN_HEIGHT / 2, (SCREEN_WIDTH - 10) / 2 - 2, ">");
         
-        mvprintw(SCREEN_HEIGHT / 2 + 1, (SCREEN_WIDTH - 10) / 2, "2. Options");
+        mvprintw(SCREEN_HEIGHT / 2 + 1, (SCREEN_WIDTH - 10) / 2, "2. Load");
         if (cursor == 1)
             mvprintw(SCREEN_HEIGHT / 2 + 1, (SCREEN_WIDTH - 10) / 2 - 2, ">");
         
@@ -1258,6 +1370,10 @@ void mainMenu()
         {
             if(cursor == 0)
                 newGame();
+            else if(cursor == 1)
+            {
+                loadGame();
+            }
             else if(cursor == 2)
             {
                 destroyCurses();
