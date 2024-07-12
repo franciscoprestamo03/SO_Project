@@ -1273,7 +1273,7 @@ void newGame(){
     char mediumLifeBitMap[] = "     \n     \n     \n     \n__ __";
     char lowLifeBitMap[] = "     \n     \n__ __\n__ __\n__ __";
     initializeGame(
-        20, 10, 1, 5, 5, 5,
+        20, 10, 1, 5, 5, 6,
         fullLifeBitMap, 
         mediumLifeBitMap,
         lowLifeBitMap,
@@ -1326,7 +1326,7 @@ void loadGame() {
     char mediumLifeBitMap[] = "     \n     \n     \n     \n__ __";
     char lowLifeBitMap[] = "     \n     \n__ __\n__ __\n__ __";
     initializeGame2(
-        20, 10, 1, 5, 5, 5,
+        20, 10, 1, 5, 5, 6,
         fullLifeBitMap,
         mediumLifeBitMap,
         lowLifeBitMap,
@@ -1750,16 +1750,16 @@ void memHandlingTest_9()
 {
     initMemory();
     printf("memHandlingTest_9 ERROR?...");
-    #define ARRSIZ 200
+    #define ARRSIZ1 200
 
-    int ptrs = createIntegerArray(ARRSIZ);
+    int ptrs = createIntegerArray(ARRSIZ1);
 
-    for (int i = 0; i < ARRSIZ; i++)
+    for (int i = 0; i < ARRSIZ1; i++)
     {
         int ptr = createAlien(randint(1, 10), randint(1, 10), randint(0, 2), randint(1, 5));
         writeIntegerInArray(ptrs, i, ptr);
     }
-    for (int i = 0; i < ARRSIZ; i++)
+    for (int i = 0; i < ARRSIZ1; i++)
     {
         int ptr = getIntegerInArray(ptrs, i);
         deleteMem(ptr);
