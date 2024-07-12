@@ -37,7 +37,60 @@ int PROGRAM_MEMORY[MEMORY_LENGTH];
 
 pthread_mutex_t memoryMutex = PTHREAD_MUTEX_INITIALIZER;
 
+#define MAX_HIGHSCORES 10
+#define MAX_NAME_LENGTH 50
 
+typedef struct {
+    int score;
+    char name[MAX_NAME_LENGTH];
+} Highscore;
+
+Highscore highscores[MAX_HIGHSCORES];
+
+void loadHighscores() {
+    FILE *file = fopen("highscores.dat", "rb");
+    if (file != NULL) {
+        fread(highscores, sizeof(Highscore), MAX_HIGHSCORES, file);
+        fclose(file);
+    } else {
+        // Inicializar la lista de puntajes en caso de que no exista el archivo
+        for (int i = 0; i < MAX_HIGHSCORES; i++) {
+            highscores[i].score = 0;
+            strcpy(highscores[i].name, "N/A");
+        }
+    }
+}
+
+void saveHighscores() {
+    FILE *file = fopen("highscores.dat", "wb");
+    if (file != NULL) {
+        fwrite(highscores, sizeof(Highscore), MAX_HIGHSCORES, file);
+        fclose(file);
+    }
+}
+
+void updateHighscores(int newScore) {
+    char playerName[MAX_NAME_LENGTH];
+    echo();
+    mvprintw(SCREEN_HEIGHT / 2 + 5, (SCREEN_WIDTH - 20) / 2, "Enter your name: ");
+    getnstr(playerName, MAX_NAME_LENGTH - 1);
+    noecho();
+
+    // Insertar el nuevo puntaje en la lista de puntajes
+    for (int i = 0; i < MAX_HIGHSCORES; i++) {
+        if (newScore > highscores[i].score) {
+            for (int j = MAX_HIGHSCORES - 1; j > i; j--) {
+                highscores[j] = highscores[j - 1];
+            }
+            highscores[i].score = newScore;
+            strncpy(highscores[i].name, playerName, MAX_NAME_LENGTH - 1);
+            highscores[i].name[MAX_NAME_LENGTH - 1] = '\0';
+            break;
+        }
+    }
+
+    saveHighscores();
+}
 
 void initMemory();
 // returns free block index in MEMORY_BLOCKS
@@ -685,21 +738,33 @@ void* drawInformation(void* arg)
         infoPosition_x, 
         "Score: %d", getInteger(currentScore_int)
     );
+
+    for (int i = 0; i < MAX_HIGHSCORES; i++) {
+        mvprintw(
+            3 + i,
+            infoPosition_x,
+            "Player %d: %s - %d ",
+            i + 1,
+            highscores[i].name,
+            highscores[i].score
+        );
+    }
+
     mvprintw(
-        3, 
-        infoPosition_x, 
+        15,
+        infoPosition_x,
         "Respawn Times:"
     );
-    
+
     for (int i = 0; i < getInteger(maxAliens_int); i++) {
         mvprintw(
-            5 + i,
-            infoPosition_x, 
-            "Alien %d: %d", 
-                i + 1, 
+            17 + i,
+            infoPosition_x,
+            "Alien %d: %d",
+                i + 1,
                 getIntegerInArray(alienRespawnTimes_arr, i)
         );
-    }  
+    }
 
     return NULL;  
 }
@@ -917,7 +982,7 @@ bool _popRespawnTimer()
         int currCtr = getIntegerInArray(alienRespawnTimes_arr, i);
         if (currCtr == 0)
         {
-            currCtr = randint(1, respawnTimerMax + 1);
+            currCtr = respawnTimerMax; //randint(1, respawnTimerMax + 1);
             writeIntegerInArray(alienRespawnTimes_arr, i, currCtr);
             return true;
         }
@@ -1097,6 +1162,8 @@ void initializeGame(
 
     respawnTimerMax_int = createIntegerInit(respawnTimerMax);
 
+    loadHighscores();
+
     gameOver = false;
 }
 
@@ -1120,6 +1187,7 @@ void initializeGame2(
     gameOver = false;
     loadGameState();
 
+    loadHighscores();
 
 }
 
@@ -1245,7 +1313,9 @@ void newGame(){
 
     scanf("hello");
 
+    getchar();
 
+    updateHighscores(getInteger(currentScore_int));
 
     freeGameMemory();
 
@@ -1296,6 +1366,8 @@ void loadGame() {
     refresh();
 
     getchar();
+
+    updateHighscores(getInteger(currentScore_int));
 
     freeGameMemory();
 
