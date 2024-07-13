@@ -6,10 +6,10 @@
 #include <time.h>
 #include <string.h>
 
-#define SCREEN_WIDTH 75
+#define SCREEN_WIDTH 120
 #define SCREEN_HEIGHT 40
 #define SCREEN_DANGER_LOWER_BAR_HEIGHT 3  
-#define infoPosition_x (SCREEN_WIDTH + 2)
+#define infoPosition_x (SCREEN_WIDTH + 10)
 #define LEFT_DIR 1
 #define RIGHT_DIR 0
 
@@ -40,6 +40,8 @@ pthread_mutex_t memoryMutex = PTHREAD_MUTEX_INITIALIZER;
 #define MAX_HIGHSCORES 10
 #define MAX_NAME_LENGTH 50
 
+#define DIRECTORY_PATH "./"
+
 typedef struct {
     int score;
     char name[MAX_NAME_LENGTH];
@@ -47,8 +49,41 @@ typedef struct {
 
 Highscore highscores[MAX_HIGHSCORES];
 
+
+void saveGameState() {
+    char filePath[256];
+    snprintf(filePath, sizeof(filePath), "%sgame_state.dat", DIRECTORY_PATH);
+    FILE *file = fopen(filePath, "wb");
+    if (file == NULL) {
+        perror("No se pudo abrir el archivo para guardar el estado del juego");
+        return;
+    }
+    _lockMemory;
+    fwrite(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
+    _unlockMemory;
+    fclose(file);
+    printf("Estado del juego guardado con éxito\n");
+}
+
+void loadGameState() {
+    char filePath[256];
+    snprintf(filePath, sizeof(filePath), "%sgame_state.dat", DIRECTORY_PATH);
+    FILE *file = fopen(filePath, "rb");
+    if (file == NULL) {
+        perror("No se pudo abrir el archivo para cargar el estado del juego");
+        return;
+    }
+    _lockMemory;
+    fread(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
+    _unlockMemory;
+    fclose(file);
+    printf("Estado del juego cargado con éxito\n");
+}
+
 void loadHighscores() {
-    FILE *file = fopen("highscores.dat", "rb");
+    char filePath[256];
+    snprintf(filePath, sizeof(filePath), "%shighscores.dat", DIRECTORY_PATH);
+    FILE *file = fopen(filePath, "rb");
     if (file != NULL) {
         fread(highscores, sizeof(Highscore), MAX_HIGHSCORES, file);
         fclose(file);
@@ -62,7 +97,9 @@ void loadHighscores() {
 }
 
 void saveHighscores() {
-    FILE *file = fopen("highscores.dat", "wb");
+    char filePath[256];
+    snprintf(filePath, sizeof(filePath), "%shighscores.dat", DIRECTORY_PATH);
+    FILE *file = fopen(filePath, "wb");
     if (file != NULL) {
         fwrite(highscores, sizeof(Highscore), MAX_HIGHSCORES, file);
         fclose(file);
@@ -750,22 +787,6 @@ void* drawInformation(void* arg)
         );
     }
 
-    mvprintw(
-        15,
-        infoPosition_x,
-        "Respawn Times:"
-    );
-
-    for (int i = 0; i < getInteger(maxAliens_int); i++) {
-        mvprintw(
-            17 + i,
-            infoPosition_x,
-            "Alien %d: %d",
-                i + 1,
-                getIntegerInArray(alienRespawnTimes_arr, i)
-        );
-    }
-
     return NULL;  
 }
 
@@ -1003,35 +1024,7 @@ void _addAlienToNewAlienObject()
 
     #pragma endregion
 
-void saveGameState() {
-    FILE *file = fopen("game_state.dat", "wb");
-    if (file == NULL) {
-        perror("No se pudo abrir el archivo para guardar el estado del juego");
-        return;
-    }
-    _lockMemory;
-    fwrite(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
-    _unlockMemory;
-    fclose(file);
-    printf("Estado del juego guardado con éxito\n");
-}
 
-void loadGameState() {
-
-
-
-    FILE *file = fopen("game_state.dat", "rb");
-    if (file == NULL) {
-        perror("No se pudo abrir el archivo para cargar el estado del juego");
-        return;
-    }
-    _lockMemory;
-    fread(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
-    _unlockMemory;
-    fclose(file);
-    printf("Estado del juego cargado con éxito\n");
-
-}
 
 void _shootBulletIfPossible();
 void* getGameInput(void* arg)
