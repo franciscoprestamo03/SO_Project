@@ -816,6 +816,7 @@ void* moveAliens(void *arg)
         if (y + alienYSize >= SCREEN_HEIGHT - SCREEN_DANGER_LOWER_BAR_HEIGHT)
         {
             gameOver = true;
+            break;
             return NULL;
         }
 
