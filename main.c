@@ -50,35 +50,7 @@ typedef struct {
 Highscore highscores[MAX_HIGHSCORES];
 
 
-void saveGameState() {
-    char filePath[256];
-    snprintf(filePath, sizeof(filePath), "%sgame_state.dat", DIRECTORY_PATH);
-    FILE *file = fopen(filePath, "wb");
-    if (file == NULL) {
-        perror("No se pudo abrir el archivo para guardar el estado del juego");
-        return;
-    }
-    _lockMemory;
-    fwrite(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
-    _unlockMemory;
-    fclose(file);
-    printf("Estado del juego guardado con éxito\n");
-}
 
-void loadGameState() {
-    char filePath[256];
-    snprintf(filePath, sizeof(filePath), "%sgame_state.dat", DIRECTORY_PATH);
-    FILE *file = fopen(filePath, "rb");
-    if (file == NULL) {
-        perror("No se pudo abrir el archivo para cargar el estado del juego");
-        return;
-    }
-    _lockMemory;
-    fread(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
-    _unlockMemory;
-    fclose(file);
-    printf("Estado del juego cargado con éxito\n");
-}
 
 void loadHighscores() {
     char filePath[256];
@@ -1024,7 +996,107 @@ void _addAlienToNewAlienObject()
 
     #pragma endregion
 
+int amountOfNewLinesInBitmap;
+int bitMapSize;
 
+void saveGameState() {
+
+    char filePath[256];
+    snprintf(filePath, sizeof(filePath), "%sgame_state.dat", DIRECTORY_PATH);
+    FILE *file = fopen(filePath, "wb");
+    if (file == NULL) {
+        perror("No se pudo abrir el archivo para guardar el estado del juego");
+        return;
+    }
+    _lockMemory;
+    fwrite(&maxAliens_int, sizeof(maxAliens_int), 1, file);
+    fwrite(&maxBullets_int, sizeof(maxBullets_int), 1, file);
+    fwrite(&alienXSize_int, sizeof(alienXSize_int), 1, file);
+    fwrite(&alienYSize_int, sizeof(alienYSize_int), 1, file);
+    fwrite(&alienSpeed_int, sizeof(alienSpeed_int), 1, file);
+
+    fwrite(&fullLifeAlienBmp_char_arr, sizeof(fullLifeAlienBmp_char_arr), 1, file);
+    fwrite(&mediumLifeAlienBmp_char_arr, sizeof(mediumLifeAlienBmp_char_arr), 1, file);
+    fwrite(&lowLifeAlienBmp_char_arr, sizeof(lowLifeAlienBmp_char_arr), 1, file);
+    fwrite(&alienBmpSize_int, sizeof(alienBmpSize_int), 1, file);
+
+    fwrite(&laneSize_int, sizeof(laneSize_int), 1, file);
+    fwrite(&player, sizeof(player), 1, file);
+    fwrite(&playerSpeed_int, sizeof(playerSpeed_int), 1, file);
+
+    fwrite(&currentScore_int, sizeof(currentScore_int), 1, file);
+    fwrite(&alienPtrs_alien_arr, sizeof(alienPtrs_alien_arr), 1, file);
+    fwrite(&alienCounter_int, sizeof(alienCounter_int), 1, file);
+    fwrite(&alienRespawnTimes_arr, sizeof(alienRespawnTimes_arr), 1, file);
+
+    fwrite(&bulletCounter_int, sizeof(bulletCounter_int), 1, file);
+    fwrite(&bulletPtrs_bullet_arr, sizeof(bulletPtrs_bullet_arr), 1, file);
+    fwrite(&bulletSpeed_int, sizeof(bulletSpeed_int), 1, file);
+
+    fwrite(&scoreOnHit_int, sizeof(scoreOnHit_int), 1, file);
+    fwrite(&scoreOnKill_int, sizeof(scoreOnKill_int), 1, file);
+
+    fwrite(&newAlienObject, sizeof(newAlienObject), 1, file);
+    fwrite(&respawnTimerMax_int, sizeof(respawnTimerMax_int), 1, file);
+
+    fwrite(&gameOver, sizeof(gameOver), 1, file);
+
+    // Guardar PROGRAM_MEMORY
+    fwrite(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
+    _unlockMemory;
+    fclose(file);
+    printf("Estado del juego guardado con éxito\n");
+}
+
+void loadGameState() {
+    char filePath[256];
+    snprintf(filePath, sizeof(filePath), "%sgame_state.dat", DIRECTORY_PATH);
+    FILE *file = fopen(filePath, "rb");
+    if (file == NULL) {
+        perror("No se pudo abrir el archivo para cargar el estado del juego");
+        return;
+    }
+    _lockMemory;
+    fread(&maxAliens_int, sizeof(maxAliens_int), 1, file);
+    fread(&maxBullets_int, sizeof(maxBullets_int), 1, file);
+    fread(&alienXSize_int, sizeof(alienXSize_int), 1, file);
+    fread(&alienYSize_int, sizeof(alienYSize_int), 1, file);
+    fread(&alienSpeed_int, sizeof(alienSpeed_int), 1, file);
+
+    fread(&fullLifeAlienBmp_char_arr, sizeof(fullLifeAlienBmp_char_arr), 1, file);
+    fread(&mediumLifeAlienBmp_char_arr, sizeof(mediumLifeAlienBmp_char_arr), 1, file);
+    fread(&lowLifeAlienBmp_char_arr, sizeof(lowLifeAlienBmp_char_arr), 1, file);
+    fread(&alienBmpSize_int, sizeof(alienBmpSize_int), 1, file);
+
+    fread(&laneSize_int, sizeof(laneSize_int), 1, file);
+    fread(&player, sizeof(player), 1, file);
+    fread(&playerSpeed_int, sizeof(playerSpeed_int), 1, file);
+
+    fread(&currentScore_int, sizeof(currentScore_int), 1, file);
+    fread(&alienPtrs_alien_arr, sizeof(alienPtrs_alien_arr), 1, file);
+    fread(&alienCounter_int, sizeof(alienCounter_int), 1, file);
+    fread(&alienRespawnTimes_arr, sizeof(alienRespawnTimes_arr), 1, file);
+
+    fread(&bulletCounter_int, sizeof(bulletCounter_int), 1, file);
+    fread(&bulletPtrs_bullet_arr, sizeof(bulletPtrs_bullet_arr), 1, file);
+    fread(&bulletSpeed_int, sizeof(bulletSpeed_int), 1, file);
+
+    fread(&scoreOnHit_int, sizeof(scoreOnHit_int), 1, file);
+    fread(&scoreOnKill_int, sizeof(scoreOnKill_int), 1, file);
+
+    fread(&newAlienObject, sizeof(newAlienObject), 1, file);
+    fread(&respawnTimerMax_int, sizeof(respawnTimerMax_int), 1, file);
+
+    fread(&gameOver, sizeof(gameOver), 1, file);
+
+    // Cargar PROGRAM_MEMORY
+    fread(PROGRAM_MEMORY, sizeof(int), MEMORY_LENGTH, file);
+    _unlockMemory;
+
+    fclose(file);
+    printf("Estado del juego cargado con éxito\n");
+
+}
 
 void _shootBulletIfPossible();
 void* getGameInput(void* arg)
@@ -1107,8 +1179,8 @@ void initializeGame(
 
     laneSize_int = createIntegerInit(laneSize);
 
-    int amountOfNewLinesInBitmap = getInteger(alienYSize_int) - 1;
-    int bitMapSize = getInteger(alienXSize_int)*getInteger(alienYSize_int) + amountOfNewLinesInBitmap;
+    amountOfNewLinesInBitmap = getInteger(alienYSize_int) - 1;
+    bitMapSize = getInteger(alienXSize_int)*getInteger(alienYSize_int) + amountOfNewLinesInBitmap;
 
     fullLifeAlienBmp_char_arr = createCharArrayInit(
         bitMapSize,
@@ -1178,8 +1250,15 @@ void initializeGame2(
         exit(1);
     }
     gameOver = false;
+
+
     loadGameState();
 
+
+
+
+    int amountOfNewLinesInBitmap = getInteger(alienYSize_int) - 1;
+    int bitMapSize = getInteger(alienXSize_int)*getInteger(alienYSize_int) + amountOfNewLinesInBitmap;
     loadHighscores();
 
 }
