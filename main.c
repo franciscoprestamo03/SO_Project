@@ -976,7 +976,7 @@ bool _popRespawnTimer()
         int currCtr = getIntegerInArray(alienRespawnTimes_arr, i);
         if (currCtr == 0)
         {
-            currCtr = respawnTimerMax; //randint(1, respawnTimerMax + 1);
+            currCtr = randint(1, respawnTimerMax + 1);
             writeIntegerInArray(alienRespawnTimes_arr, i, currCtr);
             return true;
         }
